@@ -2,7 +2,7 @@
 
 FacialFileOrganizer is an intelligent photo management system that uses facial recognition to automatically organize and categorize your photos based on the individuals present in them.
 
-![Project Overview]("/public/full-diagram.png")
+![Project Overview](public/full-diagram.png)
 
 ## Features
 
@@ -16,7 +16,7 @@ FacialFileOrganizer is an intelligent photo management system that uses facial r
 
 1. **Photo Upload**: Users upload photos through the web interface.
 
-   ![Upload Interface]("/public/upload.png")
+   ![Upload Interface](public/upload.png)
 
 2. **Face Detection**: The system analyzes each photo to detect faces.
 
@@ -26,13 +26,13 @@ FacialFileOrganizer is an intelligent photo management system that uses facial r
 
 5. **Result Presentation**: Users can view their organized photos through the web interface.
 
-   ![Result Interface]("/public/output.png")
+   ![Result Interface](public/output.png)
 
 ## Technology Stack
 
 ### Frontend
 
-<!-- - React with TypeScript -->
+- React with TypeScript
 
 - Tailwind CSS for styling
 <!-- - React-Dropzone for file uploads -->
