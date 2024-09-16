@@ -41,16 +41,20 @@ const FileUpload: React.FC<FileUploadProps> = ({
 
   const handleDrop = (event: React.DragEvent<HTMLInputElement>) => {
     event.preventDefault();
-    const file = event.dataTransfer.files[0];
+    const newFiles = Array.from(event.dataTransfer.files);
 
-    if (!file.type.includes("image")) {
-      toast({
-        description: "Only image files are allowed.",
-      });
-      form.setError("images", {
-        message: "Only image files are allowed.",
-      });
+    for (let i = 0; i < newFiles.length; i++) {
+      const file = newFiles[i];
+      if (!file.type.includes("image")) {
+        form.setError("images", {
+          message: "Only image files are allowed.",
+        });
+      }
     }
+    setFiles(newFiles);
+    const dataTransfer = new DataTransfer();
+    newFiles.forEach((file) => dataTransfer.items.add(file));
+    form.setValue("images", dataTransfer.files);
   };
   const handleSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsUploading(true);
