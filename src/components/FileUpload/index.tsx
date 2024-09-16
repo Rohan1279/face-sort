@@ -5,7 +5,7 @@ import axios from "axios";
 import { Progress } from "../ui/progress";
 import * as z from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+import { useForm, UseFormReturn } from "react-hook-form";
 import {
   Form,
   FormControl,
@@ -17,36 +17,45 @@ import {
 } from "@/components/ui/form";
 import { Button } from "../ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { formSchema } from "@/lib/formSchema";
 
-const FileUpload: React.FC = () => {
+interface FileUploadProps {
+  files: File[];
+  setFiles: (files: File[]) => void;
+  formSchema: z.ZodObject<any, any>;
+  form: UseFormReturn<z.infer<typeof formSchema>>;
+  handleFileChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
+}
+
+const FileUpload: React.FC<FileUploadProps> = ({
+  files,
+  setFiles,
+  form,
+  formSchema,
+  handleFileChange,
+}) => {
   const { toast } = useToast();
-
-  const formSchema = z.object({
-    images: z
-      .instanceof(FileList, { message: "Please select at least one file." })
-      .refine((files) => files.length > 0, "At least one file is required."),
-  });
-
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      images: undefined,
-    },
-  });
-
-  // const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
-  // const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-  //   setSelectedFiles(event.target.files);
-  // };
 
   const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [isUploading, setIsUploading] = useState(false);
 
+  const handleDrop = (event: React.DragEvent<HTMLInputElement>) => {
+    event.preventDefault();
+    const file = event.dataTransfer.files[0];
+
+    if (!file.type.includes("image")) {
+      toast({
+        description: "Only image files are allowed.",
+      });
+      form.setError("images", {
+        message: "Only image files are allowed.",
+      });
+    }
+  };
   const handleSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsUploading(true);
     setUploadProgress(0);
     if (values) {
-      console.log(values);
       // Create a new FormData instance and append each file to it as a key-value pair
       const formData = new FormData();
       for (let i = 0; i < values.images.length; i++) {
@@ -75,15 +84,16 @@ const FileUpload: React.FC = () => {
         }
       } catch (error) {
         console.error(error);
+        setIsUploading(false);
+        toast({
+          description: "An error occurred while uploading files.",
+        });
       }
     }
   };
 
   return (
-    <div className="upload-container">
-      {/* <Input type="file" multiple onChange={handleFileChange} />
-      <Progress value={uploadProgress} />
-      <button onClick={handleSubmit}>Start Face Recognition</button> */}
+    <div className="">
       <Form {...form}>
         <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-8">
           <FormField
@@ -94,14 +104,20 @@ const FileUpload: React.FC = () => {
                 <FormLabel>Upload Files</FormLabel>
                 <FormControl>
                   <Input
+                    draggable
                     type="file"
                     multiple
+                    accept="image/*"
                     disabled={isUploading}
-                    onChange={(e) => field.onChange(e.target.files)}
+                    onChange={(e) => {
+                      field.onChange(e.target.files);
+                      handleFileChange(e);
+                    }}
+                    onDrop={(e) => handleDrop(e)}
                   />
                 </FormControl>
                 <FormDescription>
-                  Select one or more files to upload.
+                  Select one or more image files to upload.
                 </FormDescription>
                 <FormMessage />
               </FormItem>
