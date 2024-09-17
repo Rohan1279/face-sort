@@ -52,12 +52,16 @@ const FileUpload: React.FC<FileUploadProps> = ({
         return;
       }
     }
+
     setFiles(newFiles);
     const dataTransfer = new DataTransfer();
     newFiles.forEach((file) => dataTransfer.items.add(file));
     form.setValue("images", dataTransfer.files);
-  };
 
+    // Update the input field's files property
+    const inputElement = event.target as HTMLInputElement;
+    inputElement.files = dataTransfer.files;
+  };
   const handleSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsUploading(true);
     setUploadProgress(0);
