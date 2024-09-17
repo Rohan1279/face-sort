@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { Button } from "../ui/button";
-import axios from "axios";
 import { useToast } from "@/hooks/use-toast";
 import Image from "next/image";
 
@@ -20,29 +19,32 @@ const FaceGallery: React.FC<FaceGalleryProps> = ({
 
   const handleFaceDetect = async () => {
     setIsProcessing(true);
-    try {
-      const response = await axios.get("http://127.0.0.1:7000/detect-faces");
-      console.log("response", response);
-      setIsProcessing(false);
-      setFaces(response.data.face_urls);
-      toast({
-        description: response.data.message,
-      });
-    } catch (error) {
-      setIsProcessing(false);
+    const eventSource = new EventSource("http://127.0.0.1:7000/detect-faces");
 
+    eventSource.onmessage = (event) => {
+      const newFace = event.data.trim(); // Trim any whitespace
+      setFaces((prevFaces) => [...prevFaces, newFace]);
+    };
+
+    eventSource.onerror = (error) => {
+      setIsProcessing(false);
+      eventSource.close();
       console.error("error", error);
-      if (error instanceof Error) {
-        toast({
-          description: error.message,
-        });
-      } else {
-        toast({
-          description: "An unknown error occurred",
-        });
-      }
-    }
+      toast({
+        description: "An error occurred while detecting faces",
+      });
+    };
+
+    eventSource.addEventListener("end", () => {
+      setIsProcessing(false);
+      eventSource.close();
+      toast({
+        description: "Face detection completed",
+      });
+      console.log("Connection to server closed.");
+    });
   };
+
   return (
     <div>
       <Button

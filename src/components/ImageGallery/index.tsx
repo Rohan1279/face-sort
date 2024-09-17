@@ -19,8 +19,8 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({
             src={URL.createObjectURL(file)}
             alt={`file-preview-${index}`}
             className="size-40 relative"
-            width={400}
-            height={400}
+            width={100}
+            height={100}
           />
           <button
             className=""
