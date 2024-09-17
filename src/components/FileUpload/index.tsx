@@ -25,6 +25,9 @@ interface FileUploadProps {
   formSchema: z.ZodObject<any, any>;
   form: UseFormReturn<z.infer<typeof formSchema>>;
   handleFileChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  isUploading: boolean;
+  setIsUploading: (isUploading: boolean) => void;
+  isProcessing: boolean;
 }
 
 const FileUpload: React.FC<FileUploadProps> = ({
@@ -33,11 +36,13 @@ const FileUpload: React.FC<FileUploadProps> = ({
   form,
   formSchema,
   handleFileChange,
+  isUploading,
+  setIsUploading,
+  isProcessing,
 }) => {
   const { toast } = useToast();
 
   const [uploadProgress, setUploadProgress] = useState<number>(0);
-  const [isUploading, setIsUploading] = useState(false);
 
   const handleDrop = (event: React.DragEvent<HTMLInputElement>) => {
     event.preventDefault();
@@ -118,7 +123,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
                     type="file"
                     multiple
                     accept="image/*"
-                    disabled={isUploading}
+                    disabled={isUploading || isProcessing}
                     onChange={(e) => {
                       field.onChange(e.target.files);
                       handleFileChange(e);
@@ -144,8 +149,10 @@ const FileUpload: React.FC<FileUploadProps> = ({
               </p>
             </div>
           )}
-          <Button type="submit" disabled={isUploading}>
-            {isUploading ? "Uploading..." : "Upload Files"}
+          <Button type="submit" disabled={isUploading || isProcessing}>
+            {isUploading && "Uploading..."}
+            {isProcessing && "Processing Images..."}
+            {!isUploading && !isProcessing && "Upload"}
           </Button>
         </form>
       </Form>
