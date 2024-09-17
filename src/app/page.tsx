@@ -1,7 +1,7 @@
 "use client";
 import FileUpload from "@/components/FileUpload";
 import ImageGallery from "@/components/ImageGallery";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import * as z from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -34,10 +34,17 @@ export default function Home() {
     newFiles.forEach((file) => dataTransfer.items.add(file));
     form.setValue("images", dataTransfer.files);
   };
+  // useEffect(() => {
+  //   const images = form.getValues("images");
+  //   if (!images || images.length < 1) {
+  //     setIsProcessing(true);
+  //   }
+  //   console.log("files", files.length);
+  // }, [form.getValues("images")]);
 
   return (
     <div className="container grid grid-cols-2 gap-x-5 mx-auto min-h-screen">
-      <div className="col-span-1 border overflow-y-scroll max-h-screen p-5">
+      <div className="col-span-1 border overflow-y-auto max-h-screen p-5">
         <FileUpload
           files={files}
           setFiles={setFiles}
@@ -54,7 +61,7 @@ export default function Home() {
           handleRemoveFile={handleRemoveFile}
         />
       </div>
-      <div className="col-span-1 border p-5">
+      <div className="col-span-1 border p-5 overflow-y-auto max-h-screen">
         <FaceGallery
           isUploading={isUploading}
           isProcessing={isProcessing}

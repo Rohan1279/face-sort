@@ -41,7 +41,6 @@ const FileUpload: React.FC<FileUploadProps> = ({
   isProcessing,
 }) => {
   const { toast } = useToast();
-
   const [uploadProgress, setUploadProgress] = useState<number>(0);
 
   const handleDrop = (event: React.DragEvent<HTMLInputElement>) => {
