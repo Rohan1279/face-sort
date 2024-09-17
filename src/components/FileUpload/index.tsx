@@ -49,6 +49,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
         form.setError("images", {
           message: "Only image files are allowed.",
         });
+        return;
       }
     }
     setFiles(newFiles);
@@ -56,6 +57,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
     newFiles.forEach((file) => dataTransfer.items.add(file));
     form.setValue("images", dataTransfer.files);
   };
+
   const handleSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsUploading(true);
     setUploadProgress(0);
@@ -117,7 +119,10 @@ const FileUpload: React.FC<FileUploadProps> = ({
                       field.onChange(e.target.files);
                       handleFileChange(e);
                     }}
-                    onDrop={(e) => handleDrop(e)}
+                    onDrop={(e) => {
+                      field.onChange(e.dataTransfer.files);
+                      handleDrop(e);
+                    }}
                   />
                 </FormControl>
                 <FormDescription>
