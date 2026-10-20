@@ -1,8 +1,8 @@
 "use client";
 import { useState } from "react";
-import { Input } from "../ui/input";
+import { Input } from "@/components/ui/input";
 import axios from "axios";
-import { Progress } from "../ui/progress";
+import { Progress } from "@/components/ui/progress";
 import * as z from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, UseFormReturn } from "react-hook-form";
@@ -15,9 +15,9 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Button } from "../ui/button";
+import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { formSchema } from "@/lib/formSchema";
+import { formSchema } from "@/components/legacy/formSchema";
 
 interface FileUploadProps {
   files: File[];

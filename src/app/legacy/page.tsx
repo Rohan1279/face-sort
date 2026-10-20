@@ -1,12 +1,13 @@
 "use client";
-import FileUpload from "@/components/FileUpload";
-import ImageGallery from "@/components/ImageGallery";
+import FileUpload from "@/components/legacy/FileUpload";
+import ImageGallery from "@/components/legacy/ImageGallery";
 import { useEffect, useState } from "react";
 import * as z from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { formSchema } from "@/lib/formSchema";
-import FaceGallery from "@/components/FaceGallery";
+import { formSchema } from "@/components/legacy/formSchema";
+import FaceGallery from "@/components/legacy/FaceGallery";
+import { Toaster } from "@/components/ui/toaster";
 
 export default function Home() {
   const [files, setFiles] = useState<File[]>([]);
@@ -43,6 +44,10 @@ export default function Home() {
   // }, [form.getValues("images")]);
 
   return (
+    <>
+    <p className="container mx-auto p-2 text-sm text-muted-foreground">
+      Legacy version: needs the old FastAPI backend (fast-api-face-recognition) running on 127.0.0.1:7000.
+    </p>
     <div className="container grid grid-cols-2 gap-x-5 mx-auto min-h-screen">
       <div className="col-span-1 border overflow-y-auto max-h-screen p-5">
         <FileUpload
@@ -69,5 +74,7 @@ export default function Home() {
         />
       </div>
     </div>
+    <Toaster />
+    </>
   );
 }
