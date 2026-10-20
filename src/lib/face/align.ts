@@ -32,11 +32,3 @@ export function alignFace(img: HTMLImageElement, meshRaw: number[][]): Uint8Clam
   ctx.drawImage(img, 0, 0);
   return ctx.getImageData(0, 0, 112, 112).data;
 }
-
-export function toTensor(px: Uint8ClampedArray, norm: "raw" | "pm1"): Float32Array {
-  const out = new Float32Array(3 * 112 * 112);
-  for (let i = 0; i < 112 * 112; i++) {
-    for (let c = 0; c < 3; c++) out[c * 12544 + i] = norm === "raw" ? px[i * 4 + c] : (px[i * 4 + c] - 127.5) / 127.5;
-  }
-  return out;
-}

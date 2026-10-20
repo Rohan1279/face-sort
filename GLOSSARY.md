@@ -10,7 +10,7 @@
 
 **Failed**: photos the engine couldn't read (for example a format the browser can't decode). Failed photos are also Unsorted.
 
-**Engine**: the module that turns a photo into faces. The real engine runs Human (detection and landmarks) plus a recognition model in the browser; tests use a fake engine.
+**Engine**: the module that turns a photo into faces, loaded for one recognition model and carrying that model's grouping settings. The real engine runs Human (detection and landmarks) plus the recognition model in the browser; tests use a fake engine.
 
 **Recognition model**: the ArcFace-family model that turns an aligned face into an embedding: SFace (default) or MBF. Each comes with its own grouping settings.
 

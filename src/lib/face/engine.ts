@@ -1,13 +1,15 @@
 import type { Config, FaceResult, Human } from "@vladmandic/human";
-import { alignFace, toTensor } from "./align";
+import { alignFace } from "./align";
+import type { Settings } from "./grouping.ts";
 
 const HUMAN_MODELS = "https://cdn.jsdelivr.net/npm/@vladmandic/human@3.3.6/models/";
 
-export const MODELS = {
+const MODELS = {
   sface: { label: "SFace · Apache-2.0 · 39 MB", file: "/models/sface.onnx", norm: "raw", threshold: 0.42, lowFit: 0.55, lowMargin: 0.05 },
   mbf: { label: "MBF · non-commercial licence · 14 MB", file: "/models/w600k_mbf.onnx", norm: "pm1", threshold: 0.3, lowFit: 0.45, lowMargin: 0.05 },
 } as const;
 export type ModelId = keyof typeof MODELS;
+export const MODEL_OPTIONS = (Object.keys(MODELS) as ModelId[]).map((id) => ({ id, label: MODELS[id].label }));
 
 const HUMAN_CONFIG = {
   modelBasePath: HUMAN_MODELS,
@@ -28,7 +30,7 @@ const HUMAN_CONFIG = {
 
 export type Box = [number, number, number, number];
 export type DetectedFace = { embedding: Float32Array; thumb: string; box: Box };
-export type Engine = { detect: (file: File) => Promise<{ faces: DetectedFace[]; skipped: number }> };
+export type Engine = { settings: Settings; detect: (file: File) => Promise<DetectedFace[]> };
 
 let humanReady: Promise<Human> | null = null;
 const engines = new Map<ModelId, Promise<Engine>>();
@@ -47,7 +49,7 @@ async function loadHuman() {
 }
 
 async function createEngine(model: ModelId): Promise<Engine> {
-  const { file, norm } = MODELS[model];
+  const { file, norm, threshold, lowFit, lowMargin } = MODELS[model];
   const [human, ort] = await Promise.all([(humanReady ??= loadHuman()), import("onnxruntime-web/webgpu")]);
   ort.env.logLevel = "error";
 
@@ -59,6 +61,7 @@ async function createEngine(model: ModelId): Promise<Engine> {
   await embed(new Uint8ClampedArray(112 * 112 * 4));
 
   return {
+    settings: { threshold, lowFit, lowMargin },
     async detect(file) {
       const url = URL.createObjectURL(file);
       try {
@@ -66,11 +69,10 @@ async function createEngine(model: ModelId): Promise<Engine> {
         img.src = url;
         await img.decode();
         const result = await human.detect(img);
-        const detected = dropNested(result.face.filter((f) => f.meshRaw?.length));
-        const found = detected.filter((f) => goodQuality(f, img));
+        const found = dropNested(result.face.filter((f) => f.meshRaw?.length)).filter((f) => goodQuality(f, img));
         const faces: DetectedFace[] = [];
         for (const f of found) faces.push({ embedding: await embed(alignFace(img, f.meshRaw.map(([x, y]) => [x, y]))), thumb: crop(img, f.boxRaw), box: f.boxRaw });
-        return { faces, skipped: detected.length - found.length };
+        return faces;
       } finally {
         URL.revokeObjectURL(url);
       }
@@ -87,6 +89,14 @@ function dropNested(list: FaceResult[]) {
 
 const goodQuality = (f: FaceResult, img: HTMLImageElement) =>
   f.boxScore >= 0.6 && Math.abs(f.rotation?.angle?.yaw ?? 0) <= 0.8 && f.boxRaw[2] * img.naturalWidth >= 40;
+
+function toTensor(px: Uint8ClampedArray, norm: "raw" | "pm1"): Float32Array {
+  const out = new Float32Array(3 * 112 * 112);
+  for (let i = 0; i < 112 * 112; i++) {
+    for (let c = 0; c < 3; c++) out[c * 12544 + i] = norm === "raw" ? px[i * 4 + c] : (px[i * 4 + c] - 127.5) / 127.5;
+  }
+  return out;
+}
 
 function crop(img: HTMLImageElement, [x, y, w, h]: Box) {
   const [W, H] = [img.naturalWidth, img.naturalHeight];

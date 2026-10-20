@@ -1,5 +1,5 @@
 import type { DetectedFace, Engine } from "./engine";
-import { groupFaces, type Confidence, type Settings } from "./grouping.ts";
+import { groupFaces, type Confidence } from "./grouping.ts";
 
 export type Face = DetectedFace & { photo: number };
 export type Person = { faces: number[]; photos: number[] };
@@ -15,22 +15,20 @@ export type SortResult = {
 export async function sortPhotos(
   photos: File[],
   engine: Engine,
-  settings: Settings,
   onProgress: (progress: { done: number; total: number }) => void = () => {},
 ): Promise<SortResult> {
   const faces: Face[] = [];
   const failed: number[] = [];
   for (const [i, photo] of photos.entries()) {
     try {
-      const { faces: found } = await engine.detect(photo);
-      faces.push(...found.map((f) => ({ ...f, photo: i })));
+      faces.push(...(await engine.detect(photo)).map((f) => ({ ...f, photo: i })));
     } catch {
       failed.push(i);
     }
     onProgress({ done: i + 1, total: photos.length });
   }
   await new Promise((r) => setTimeout(r));
-  const { groups, groupOf, confidence } = groupFaces(faces, settings);
+  const { groups, groupOf, confidence } = groupFaces(faces, engine.settings);
   const withFaces = new Set(faces.map((f) => f.photo));
   return {
     faces,

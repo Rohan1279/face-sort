@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { loadEngine, MODELS, type ModelId } from "@/lib/face/engine";
+import { loadEngine, MODEL_OPTIONS, type ModelId } from "@/lib/face/engine";
 import { download, exportZip } from "@/lib/face/export";
 import { sortPhotos, type SortResult } from "@/lib/face/sort";
 import { cn } from "@/lib/utils";
@@ -40,7 +40,7 @@ export default function Home() {
       setStatus("Loading face models…");
       const engine = await loadEngine(modelId);
       setStatus(`Finding faces: 0 of ${images.length}`);
-      const sorted = await sortPhotos(images, engine, MODELS[modelId], ({ done, total }) => {
+      const sorted = await sortPhotos(images, engine, ({ done, total }) => {
         setStatus(done < total ? `Finding faces: ${done + 1} of ${total}` : "Grouping faces…");
         setProgress((done / total) * 100);
       });
@@ -89,7 +89,7 @@ export default function Home() {
           <Label htmlFor="model">Model</Label>
           <Select
             value={model}
-            items={Object.fromEntries(Object.entries(MODELS).map(([id, m]) => [id, m.label]))}
+            items={MODEL_OPTIONS.map(({ id, label }) => ({ value: id, label }))}
             onValueChange={(value) => {
               if (!value) return;
               const next = value as ModelId;
@@ -101,8 +101,8 @@ export default function Home() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {(Object.keys(MODELS) as ModelId[]).map((id) => (
-                <SelectItem key={id} value={id}>{MODELS[id].label}</SelectItem>
+              {MODEL_OPTIONS.map(({ id, label }) => (
+                <SelectItem key={id} value={id}>{label}</SelectItem>
               ))}
             </SelectContent>
           </Select>

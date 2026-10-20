@@ -3,7 +3,6 @@ import { test } from "node:test";
 import type { DetectedFace, Engine } from "./engine";
 import { sortPhotos } from "./sort.ts";
 
-const SFACE = { threshold: 0.42, lowFit: 0.55, lowMargin: 0.05 };
 
 const A = [1, 0, 0, 0];
 const B = [0, 1, 0, 0];
@@ -17,15 +16,16 @@ const facesIn: Record<string, DetectedFace[]> = {
   "landscape.jpg": [],
 };
 const fakeEngine: Engine = {
+  settings: { threshold: 0.42, lowFit: 0.55, lowMargin: 0.05 },
   async detect(file) {
     if (!(file.name in facesIn)) throw new Error("cannot decode");
-    return { faces: facesIn[file.name], skipped: 0 };
+    return facesIn[file.name];
   },
 };
 
 const photos = ["a1.jpg", "a2.jpg", "group.jpg", "b1.jpg", "landscape.jpg", "broken.jpg"].map((n) => new File([], n));
 const progress: { done: number; total: number }[] = [];
-const result = await sortPhotos(photos, fakeEngine, SFACE, (p) => progress.push(p));
+const result = await sortPhotos(photos, fakeEngine, (p) => progress.push(p));
 const personWith = (photo: number) => result.people.find((p) => p.photos.includes(photo));
 
 test("one person across several photos ends up as one person", () => {
