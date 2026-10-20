@@ -1,12 +1,6 @@
-// Pure grouping maths (no browser APIs), so it can be tested with plain `node --test`.
-
-// per-model settings (see MODELS in engine.ts):
-// threshold: minimum mean similarity for two groups to merge
-// lowFit: group fit below this = low match confidence, usually a hard photo (angle, light, blur) rather than a wrong person
-// lowMargin: own-group fit minus closest other group below this = the face could belong to that other group
 export type Settings = { threshold: number; lowFit: number; lowMargin: number };
 
-export function cosine(a: ArrayLike<number>, b: ArrayLike<number>): number {
+function cosine(a: ArrayLike<number>, b: ArrayLike<number>): number {
   let dot = 0, na = 0, nb = 0;
   for (let i = 0; i < a.length; i++) {
     dot += a[i] * b[i];
@@ -16,15 +10,21 @@ export function cosine(a: ArrayLike<number>, b: ArrayLike<number>): number {
   return dot / Math.sqrt(na * nb);
 }
 
-// pairwise similarity; faces from the same photo get -Infinity so they can never share a group
-export function similarityMatrix(embeddings: ArrayLike<number>[], photoOf: number[]): number[][] {
+export type Confidence = { fit: number | null; margin: number; closest: number; lowFit: boolean; lowMargin: boolean };
+
+export function groupFaces(faces: { embedding: ArrayLike<number>; photo: number }[], settings: Settings) {
+  const sims = similarityMatrix(faces.map((f) => f.embedding), faces.map((f) => f.photo));
+  const groups = cluster(sims, settings.threshold);
+  const groupOf: number[] = [];
+  groups.forEach((g, gi) => g.forEach((fi) => (groupOf[fi] = gi)));
+  return { groups, groupOf, confidence: confidence(groups, sims, settings) };
+}
+
+function similarityMatrix(embeddings: ArrayLike<number>[], photoOf: number[]): number[][] {
   return embeddings.map((a, i) => embeddings.map((b, j) => (i !== j && photoOf[i] === photoOf[j] ? -Infinity : cosine(a, b))));
 }
 
-// average-linkage clustering: keep merging the two groups with the highest mean pairwise similarity until none reach
-// the threshold. Returns groups of face indices, largest first.
-// ponytail: O(n³), fine for a few hundred faces; needs a priority queue past ~1-2k faces
-export function cluster(sims: number[][], threshold: number): number[][] {
+function cluster(sims: number[][], threshold: number): number[][] {
   const n = sims.length;
   const D = sims.map((row) => row.slice());
   const members = sims.map((_, i) => [i]);
@@ -46,11 +46,7 @@ export function cluster(sims: number[][], threshold: number): number[][] {
   return members.filter((_, i) => alive[i]).sort((a, b) => b.length - a.length);
 }
 
-export type Confidence = { fit: number | null; margin: number; closest: number; lowFit: boolean; lowMargin: boolean };
-
-// per face: fit = mean similarity to the rest of its group (null when alone);
-// margin = fit (threshold when alone) minus mean similarity to the closest other group
-export function confidence(groups: number[][], sims: number[][], { threshold, lowFit, lowMargin }: Settings): Confidence[] {
+function confidence(groups: number[][], sims: number[][], { threshold, lowFit, lowMargin }: Settings): Confidence[] {
   const out: Confidence[] = [];
   groups.forEach((group, gi) => {
     for (const i of group) {

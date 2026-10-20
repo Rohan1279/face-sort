@@ -1,11 +1,8 @@
-// Browser-only face pipeline: Human finds faces + landmarks, SFace (ONNX) turns each aligned face into an embedding.
 import type { Config, FaceResult, Human } from "@vladmandic/human";
 import { alignFace, toTensor } from "./align";
 
 const HUMAN_MODELS = "https://cdn.jsdelivr.net/npm/@vladmandic/human@3.3.6/models/";
 
-// ArcFace-family recognition models. Thresholds sit in the range that scored F1 >= 0.9 on held-out LFW people;
-// lowFit/lowMargin mark ~5% / ~3% of faces as low confidence (see grouping.ts)
 export const MODELS = {
   sface: { label: "SFace · Apache-2.0 · 39 MB", file: "/models/sface.onnx", norm: "raw", threshold: 0.42, lowFit: 0.55, lowMargin: 0.05 },
   mbf: { label: "MBF · non-commercial licence · 14 MB", file: "/models/w600k_mbf.onnx", norm: "pm1", threshold: 0.3, lowFit: 0.45, lowMargin: 0.05 },
@@ -27,13 +24,12 @@ const HUMAN_CONFIG = {
   object: { enabled: false },
   gesture: { enabled: false },
   segmentation: { enabled: false },
-} as unknown as Partial<Config>; // Human deep-merges partial nested config at runtime; its typings expect full objects
+} as unknown as Partial<Config>;
 
 export type Box = [number, number, number, number];
 export type DetectedFace = { embedding: Float32Array; thumb: string; box: Box };
 export type Engine = { detect: (file: File) => Promise<{ faces: DetectedFace[]; skipped: number }> };
 
-// Human (detection) is shared; each recognition model gets its own session, loaded the first time it's picked
 let humanReady: Promise<Human> | null = null;
 const engines = new Map<ModelId, Promise<Engine>>();
 
@@ -60,7 +56,7 @@ async function createEngine(model: ModelId): Promise<Engine> {
     const out = await session.run({ [session.inputNames[0]]: new ort.Tensor("float32", toTensor(px, norm), [1, 3, 112, 112]) });
     return out[session.outputNames[0]].data as Float32Array;
   };
-  await embed(new Uint8ClampedArray(112 * 112 * 4)); // first run compiles GPU shaders; do it before the first photo
+  await embed(new Uint8ClampedArray(112 * 112 * 4));
 
   return {
     async detect(file) {
@@ -82,7 +78,6 @@ async function createEngine(model: ModelId): Promise<Engine> {
   };
 }
 
-// the detector sometimes returns two nested boxes for one face; keep the higher-scoring one (its mesh is the reliable one)
 function dropNested(list: FaceResult[]) {
   const area = ([, , w, h]: Box) => w * h;
   const overlap = ([ax, ay, aw, ah]: Box, [bx, by, bw, bh]: Box) =>
@@ -90,7 +85,6 @@ function dropNested(list: FaceResult[]) {
   return list.filter((a) => !list.some((b) => b !== a && b.boxScore > a.boxScore && overlap(a.box, b.box) > 0.6 * Math.min(area(a.box), area(b.box))));
 }
 
-// ponytail: cut-offs picked from LFW stats (real faces: boxScore >= 0.72, |yaw| <= 0.45); re-check on crowd photos
 const goodQuality = (f: FaceResult, img: HTMLImageElement) =>
   f.boxScore >= 0.6 && Math.abs(f.rotation?.angle?.yaw ?? 0) <= 0.8 && f.boxRaw[2] * img.naturalWidth >= 40;
 

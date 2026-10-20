@@ -1,6 +1,5 @@
 import { zip, type Zippable } from "fflate";
 
-// one folder per person (a group photo is copied into every person in it) plus "Unsorted" for photos without faces
 export async function exportZip(people: { name: string; photos: File[] }[], unsorted: File[]): Promise<Blob> {
   const tree: Zippable = {};
   const folders = [...people, { name: "Unsorted", photos: unsorted }].filter((p) => p.photos.length);

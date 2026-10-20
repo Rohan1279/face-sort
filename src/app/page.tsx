@@ -9,13 +9,10 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { loadEngine, MODELS, type DetectedFace, type ModelId } from "@/lib/face/engine";
+import { loadEngine, MODELS, type ModelId } from "@/lib/face/engine";
 import { download, exportZip } from "@/lib/face/export";
-import { cluster, confidence, similarityMatrix, type Confidence } from "@/lib/face/grouping";
+import { sortPhotos, type SortResult } from "@/lib/face/sort";
 import { cn } from "@/lib/utils";
-
-type Face = DetectedFace & { photo: number };
-type Result = { faces: Face[]; groups: number[][]; groupOf: number[]; conf: Confidence[]; unsorted: number[]; failed: number };
 
 export default function Home() {
   const [model, setModel] = useState<ModelId>("sface");
@@ -23,7 +20,7 @@ export default function Home() {
   const [urls, setUrls] = useState<string[]>([]);
   const [status, setStatus] = useState("");
   const [progress, setProgress] = useState(0);
-  const [result, setResult] = useState<Result | null>(null);
+  const [result, setResult] = useState<SortResult | null>(null);
   const [names, setNames] = useState<string[]>([]);
   const [showConfidence, setShowConfidence] = useState(false);
   const [viewing, setViewing] = useState<number | null>(null);
@@ -42,28 +39,13 @@ export default function Home() {
     try {
       setStatus("Loading face models…");
       const engine = await loadEngine(modelId);
-      const faces: Face[] = [];
-      let failed = 0;
-      for (const [i, file] of images.entries()) {
-        setStatus(`Finding faces: ${i + 1} of ${images.length}`);
-        try {
-          const { faces: found } = await engine.detect(file);
-          faces.push(...found.map((f) => ({ ...f, photo: i })));
-        } catch {
-          failed++; // unreadable image (e.g. a format the browser can't decode): it ends up in Unsorted
-        }
-        setProgress(((i + 1) / images.length) * 100);
-      }
-      setStatus("Grouping faces…");
-      await new Promise((r) => setTimeout(r)); // let the status paint before the synchronous grouping
-      const sims = similarityMatrix(faces.map((f) => f.embedding), faces.map((f) => f.photo));
-      const settings = MODELS[modelId];
-      const groups = cluster(sims, settings.threshold);
-      const groupOf: number[] = [];
-      groups.forEach((g, gi) => g.forEach((fi) => (groupOf[fi] = gi)));
-      const withFaces = new Set(faces.map((f) => f.photo));
-      setResult({ faces, groups, groupOf, conf: confidence(groups, sims, settings), unsorted: images.map((_, i) => i).filter((i) => !withFaces.has(i)), failed });
-      setNames(groups.map((_, i) => `Person ${i + 1}`));
+      setStatus(`Finding faces: 0 of ${images.length}`);
+      const sorted = await sortPhotos(images, engine, MODELS[modelId], ({ done, total }) => {
+        setStatus(done < total ? `Finding faces: ${done + 1} of ${total}` : "Grouping faces…");
+        setProgress((done / total) * 100);
+      });
+      setResult(sorted);
+      setNames(sorted.people.map((_, i) => `Person ${i + 1}`));
     } catch (e) {
       setError(`Something went wrong: ${e instanceof Error ? e.message : String(e)}`);
     } finally {
@@ -84,7 +66,7 @@ export default function Home() {
     if (!result) return;
     setExporting(true);
     try {
-      const people = result.groups.map((g, gi) => ({ name: names[gi], photos: [...new Set(g.map((fi) => result.faces[fi].photo))].map((p) => photos[p]) }));
+      const people = result.people.map((person, i) => ({ name: names[i], photos: person.photos.map((p) => photos[p]) }));
       download(await exportZip(people, result.unsorted.map((p) => photos[p])), "face-sort.zip");
     } finally {
       setExporting(false);
@@ -110,7 +92,7 @@ export default function Home() {
             onValueChange={(value) => {
               const next = value as ModelId;
               setModel(next);
-              if (photos.length) start(photos, next); // re-sort the same photos with the other model
+              if (photos.length) start(photos, next);
             }}
           >
             <SelectTrigger id="model" className="w-72">
@@ -138,9 +120,9 @@ export default function Home() {
         <>
           <div className="flex flex-wrap items-center gap-3">
             <p className="mr-auto text-sm">
-              {plural(result.groups.length, "person", "people")} in {plural(photos.length, "photo", "photos")}
+              {plural(result.people.length, "person", "people")} in {plural(photos.length, "photo", "photos")}
               {result.unsorted.length > 0 && ` · ${result.unsorted.length} without a recognisable face`}
-              {result.failed > 0 && ` · ${result.failed} couldn't be read`}
+              {result.failed.length > 0 && ` · ${result.failed.length} couldn't be read`}
             </p>
             <div className="flex items-center gap-2">
               <Switch id="confidence" checked={showConfidence} onCheckedChange={setShowConfidence} />
@@ -157,15 +139,15 @@ export default function Home() {
           )}
 
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {result.groups.map((group, gi) => (
+            {result.people.map((person, gi) => (
               <Card key={gi}>
                 <CardHeader>
                   <Input aria-label="Person name" value={names[gi]} onChange={(e) => setNames((n) => n.map((v, k) => (k === gi ? e.target.value : v)))} />
                 </CardHeader>
                 <CardContent className="flex flex-wrap gap-2">
-                  {group.map((fi) => {
+                  {person.faces.map((fi) => {
                     const face = result.faces[fi];
-                    const c = result.conf[fi];
+                    const c = result.confidence[fi];
                     const tip = [
                       photos[face.photo].name,
                       c.fit !== null && `group fit ${c.fit.toFixed(2)}`,
@@ -209,7 +191,7 @@ export default function Home() {
           {viewed && result && (
             <>
               <DialogHeader>
-                <DialogTitle>{names[result.groupOf[viewing!]]}</DialogTitle>
+                <DialogTitle>{names[result.personOf[viewing!]]}</DialogTitle>
                 <DialogDescription>{photos[viewed.photo].name}</DialogDescription>
               </DialogHeader>
               <div className="relative mx-auto w-fit">
