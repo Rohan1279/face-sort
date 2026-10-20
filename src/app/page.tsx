@@ -89,7 +89,9 @@ export default function Home() {
           <Label htmlFor="model">Model</Label>
           <Select
             value={model}
+            items={Object.fromEntries(Object.entries(MODELS).map(([id, m]) => [id, m.label]))}
             onValueChange={(value) => {
+              if (!value) return;
               const next = value as ModelId;
               setModel(next);
               if (photos.length) start(photos, next);
@@ -125,8 +127,8 @@ export default function Home() {
               {result.failed.length > 0 && ` · ${result.failed.length} couldn't be read`}
             </p>
             <div className="flex items-center gap-2">
-              <Switch id="confidence" checked={showConfidence} onCheckedChange={setShowConfidence} />
-              <Label htmlFor="confidence">Show confidence</Label>
+              <Switch id="confidence" aria-labelledby="confidence-label" checked={showConfidence} onCheckedChange={setShowConfidence} />
+              <Label id="confidence-label" htmlFor="confidence">Show confidence</Label>
             </div>
             <Button onClick={exportPhotos} disabled={exporting}>{exporting ? "Zipping…" : "Download zip"}</Button>
             <Button variant="outline" onClick={reset}>Start over</Button>

@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { formSchema } from "@/components/legacy/formSchema";
 import FaceGallery from "@/components/legacy/FaceGallery";
-import { Toaster } from "@/components/ui/toaster";
+import { Toaster } from "@/components/legacy/ui/toaster";
 
 export default function Home() {
   const [files, setFiles] = useState<File[]>([]);
