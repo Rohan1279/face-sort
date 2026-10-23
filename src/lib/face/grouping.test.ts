@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { groupFaces } from "./grouping.ts";
+import { buildTree, cutTree, groupFaces } from "./grouping.ts";
 
 const SFACE = { threshold: 0.42, lowFit: 0.55, lowMargin: 0.05 };
 
@@ -17,6 +17,12 @@ test("groups each person together and keeps people apart", () => {
 test("two faces from the same photo never share a group", () => {
   const { groups } = groupFaces([{ embedding: near(A, 2), photo: 0 }, { embedding: near(A, 3), photo: 0 }], SFACE);
   assert.equal(groups.length, 2);
+});
+
+test("one tree cut at a stricter threshold splits people apart", () => {
+  const tree = buildTree(onePhotoEach([near(A, 2), near(A, 3), near(B, 2), near(B, 3)]));
+  assert.equal(cutTree(tree, SFACE).groups.length, 2);
+  assert.equal(cutTree(tree, { ...SFACE, threshold: 0.999 }).groups.length, 4);
 });
 
 test("a face halfway between two people gets a low margin pointing at the other group", () => {
