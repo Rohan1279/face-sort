@@ -1,9 +1,18 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Geist_Mono } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
+const generalSans = localFont({
+  src: [
+    { path: "./fonts/GeneralSans-400.woff2", weight: "400" },
+    { path: "./fonts/GeneralSans-500.woff2", weight: "500" },
+    { path: "./fonts/GeneralSans-600.woff2", weight: "600" },
+  ],
+  variable: "--font-general",
+});
+const geistMono = Geist_Mono({ subsets: ["latin"], weight: "400", variable: "--font-geist-mono" });
 
 export const metadata: Metadata = {
   title: "Face Sort",
@@ -16,8 +25,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={cn("font-sans", inter.variable)}>
-      <body className="antialiased">
+    <html lang="en" className={cn(generalSans.variable, geistMono.variable)}>
+      <body>
         <main>{children}</main>
       </body>
     </html>

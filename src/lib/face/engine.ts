@@ -108,7 +108,7 @@ function toTensor(px: Uint8ClampedArray, norm: "raw" | "pm1"): Float32Array {
 function crop(img: HTMLImageElement, [x, y, w, h]: Box) {
   const [W, H] = [img.naturalWidth, img.naturalHeight];
   const canvas = document.createElement("canvas");
-  canvas.width = canvas.height = 96;
-  canvas.getContext("2d")!.drawImage(img, x * W, y * H, w * W, h * H, 0, 0, 96, 96);
+  canvas.width = canvas.height = 160;
+  canvas.getContext("2d")!.drawImage(img, x * W, y * H, w * W, h * H, 0, 0, 160, 160);
   return canvas.toDataURL("image/jpeg", 0.8);
 }

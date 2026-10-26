@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { DetectedFace, Engine, Rejection } from "./engine";
-import { assignIds, regroup, sortPhotos, type SortResult } from "./sort.ts";
+import { assignIds, moveFace, regroup, sortPhotos, type SortResult } from "./sort.ts";
 
 
 const A = [1, 0, 0, 0];
@@ -87,4 +87,22 @@ test("after a merge, the id with more faces wins", () => {
 test("regrouping keeps people and ids, and a stricter threshold splits them", () => {
   assert.deepEqual(regroup(result, fakeEngine.settings).people, result.people);
   assert.equal(regroup(result, { ...fakeEngine.settings, threshold: 0.999 }).people.length, result.faces.length);
+});
+
+test("moving a person's only face away keeps every 'might be' hint pointing at a real person", () => {
+  const conf = (closest: number, lowMargin: boolean) => ({ fit: 0.6, margin: 0, closest, lowFit: false, lowMargin });
+  const before: SortResult = {
+    faces: [0, 1, 2].map((photo) => ({ embedding: new Float32Array(4), thumb: "", box: [0, 0, 1, 1], photo })),
+    people: [{ id: 1, faces: [0], photos: [0] }, { id: 2, faces: [1], photos: [1] }, { id: 3, faces: [2], photos: [2] }],
+    personOf: [0, 1, 2],
+    confidence: [conf(1, false), conf(2, true), conf(0, true)],
+    unsorted: [],
+    reason: {},
+  };
+  const after = moveFace(before, 0, 1);
+  assert.deepEqual(after.people.map((p) => p.id), [2, 3]);
+  assert.deepEqual(after.personOf, [0, 0, 1]);
+  assert.equal(after.people[after.confidence[1].closest].id, 3);
+  assert.equal(after.confidence[2].lowMargin, false);
+  assert.ok(after.confidence.every((c) => !c.lowMargin || after.people[c.closest]));
 });

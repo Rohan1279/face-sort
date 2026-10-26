@@ -111,3 +111,24 @@ function summarize(faces: Face[], reason: Record<number, Reason>, tree: Tree, se
 export function regroup(result: SortResult, settings: Settings): SortResult {
   return summarize(result.faces, result.reason, result.tree!, settings, result.people, { id: Math.max(0, ...result.people.map((p) => p.id)) + 1 });
 }
+
+// ponytail: a move lives only in this result; regroup recomputes from the faces and drops it. Pin moves as grouping constraints to keep them.
+export function moveFace(result: SortResult, face: number, to: number): SortResult {
+  const from = result.personOf[face];
+  if (from === to) return result;
+  const index: number[] = [];
+  const people: Person[] = [];
+  result.people.forEach((p, i) => {
+    const faces = i === from ? p.faces.filter((f) => f !== face) : i === to ? [...p.faces, face] : p.faces;
+    if (!faces.length) return;
+    index[i] = people.length;
+    people.push({ ...p, faces, photos: [...new Set(faces.map((f) => result.faces[f].photo))] });
+  });
+  const personOf = result.personOf.map((pi, f) => (f === face ? index[to] : index[pi]));
+  const confidence = result.confidence.map((c, f) => {
+    if (!c) return c;
+    const closest = index[c.closest] ?? -1;
+    return f === face ? { ...c, fit: null, closest, lowFit: false, lowMargin: false } : { ...c, closest, lowMargin: c.lowMargin && closest >= 0 };
+  });
+  return { ...result, people, personOf, confidence };
+}
