@@ -112,7 +112,6 @@ export function regroup(result: SortResult, settings: Settings): SortResult {
   return summarize(result.faces, result.reason, result.tree!, settings, result.people, { id: Math.max(0, ...result.people.map((p) => p.id)) + 1 });
 }
 
-// ponytail: a move lives only in this result; regroup recomputes from the faces and drops it. Pin moves as grouping constraints to keep them.
 export function moveFace(result: SortResult, face: number, to: number): SortResult {
   const from = result.personOf[face];
   if (from === to) return result;
