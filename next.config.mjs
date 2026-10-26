@@ -1,7 +1,9 @@
-/** @type {import('next').NextConfig} */
 const nextConfig = {
-  images: {
-    domains: ["127.0.0.1"],
+  output: "export",
+  trailingSlash: true,
+  images: { unoptimized: true },
+  turbopack: {
+    resolveAlias: { "@vladmandic/human": "./node_modules/@vladmandic/human/dist/human.esm.js" },
   },
 };
 
