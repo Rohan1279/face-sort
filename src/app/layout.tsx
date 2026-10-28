@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist_Mono } from "next/font/google";
 import localFont from "next/font/local";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 
@@ -28,6 +29,7 @@ export default function RootLayout({
     <html lang="en" className={cn(generalSans.variable, geistMono.variable)}>
       <body>
         <main>{children}</main>
+        <Analytics />
       </body>
     </html>
   );
